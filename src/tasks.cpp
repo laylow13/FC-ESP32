@@ -4,11 +4,22 @@
 
 #include "tasks.h"
 #include "imu.h"
+#include "pid.h"
+#include "motor.h"
 
-
+#define PID_CTRL_PERIOD 5 //:ms
 Mahony mahony;
 
-void calc_att_init()
+void pid_ctrl_init()
+{
+    anglePitch_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
+    angleRoll_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
+    angleYaw_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
+    angularVelPitch_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
+    angularVelRoll_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
+    angularVelYaw_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
+}
+void att_calc_init()
 {
     imu.init();
 //    -324.00,99.00,-96.00
@@ -46,5 +57,33 @@ void calc_att_init()
         Serial.print(",");
         Serial.println(mahony.getYaw());
         vTaskDelay(10/portTICK_PERIOD_MS);
+    }
+}
+
+[[noreturn]] void pid_calculate_task(void *pvParameters)
+{
+    float angleYaw,angleRoll,anglePitch,angularVelYaw,angularVelRoll,angularVelPitch;
+    while (1)
+    {
+        angularVelPitch=Filters.GyroxLPF.output*0.01744;
+        angularVelRoll=Filters.GyroyLPF.output*0.01744;
+        angularVelYaw=Filters.GyrozLPF.output*0.01744;
+        anglePitch = mahony.getPitch()*0.01744;  //deg to rad
+        angleRoll = mahony.getRoll()*0.01744;
+        angleYaw = mahony.getYaw()*0.01744;
+
+        anglePitch_ctrl.calculate(anglePitch);
+        angularVelPitch_ctrl.setDes(anglePitch_ctrl.output);
+        angularVelPitch_ctrl.calculate(angularVelPitch);
+
+        angleRoll_ctrl.calculate(angleRoll);
+        angularVelRoll_ctrl.setDes(angleRoll_ctrl.output);
+        angularVelRoll_ctrl.calculate(angularVelRoll);
+
+        angleYaw_ctrl.calculate(angleYaw);
+        angularVelYaw_ctrl.setDes(angleYaw_ctrl.output);
+        angularVelYaw_ctrl.calculate(angularVelYaw);
+        motor_pwm_calculate(angularVelPitch_ctrl.output,angularVelRoll_ctrl.output,angularVelYaw_ctrl.output);
+        motor_set_speed();
     }
 }

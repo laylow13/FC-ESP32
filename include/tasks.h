@@ -10,8 +10,10 @@
 [[noreturn]] void att_update_task(void *pvParameters);
 [[noreturn]] void serial_print_task(void *pvParameters);
 
-void task1();
-void calc_att_init();
+[[noreturn]] void pid_ctrl_task(void *pvParameters);
+
+void att_calc_init();
+void pid_ctrl_init();
 
 extern Mahony mahony;
 
