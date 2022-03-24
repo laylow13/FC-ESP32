@@ -11,9 +11,10 @@ Mahony mahony;
 void calc_att_init()
 {
     imu.init();
-    imu.gx_error=-248.00;
-    imu.gy_error=114.00;
-    imu.gz_error=-68.00;
+//    -324.00,99.00,-96.00
+    imu.gx_error=-324.00;
+    imu.gy_error=99.00;
+    imu.gz_error=-96.00;
 //    imu.getGyroStaticError();
     mahony.begin(200);
 }
@@ -24,6 +25,7 @@ void calc_att_init()
     float gyroScale = 0.061;
     while (1)
     {
+//        Serial.println(micros());
         imu.update();
         LPFUpdate6axis((imu.gx-imu.gx_error)*gyroScale,(imu.gy-imu.gy_error)*gyroScale,
                        (imu.gz-imu.gz_error)*gyroScale,imu.ax,imu.ay,imu.az);
@@ -43,6 +45,6 @@ void calc_att_init()
         Serial.print(mahony.getRoll());
         Serial.print(",");
         Serial.println(mahony.getYaw());
-//        vTaskDelay(1);
+        vTaskDelay(10/portTICK_PERIOD_MS);
     }
 }
