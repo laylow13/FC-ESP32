@@ -7,7 +7,9 @@
 
 #include "MahonyAHRS.h"
 
-void task0();
+[[noreturn]] void att_update_task(void *pvParameters);
+[[noreturn]] void serial_print_task(void *pvParameters);
+
 void task1();
 void calc_att_init();
 
