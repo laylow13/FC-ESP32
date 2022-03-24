@@ -19,7 +19,7 @@ void motor_init() {
 //    ledcAttachPin(0,MOTOR_PIN1);
 //    ledcAttachPin(1,MOTOR_PIN2);
 //    ledcAttachPin(2,MOTOR_PIN3);
-//    ledcAttachPin(3,MOTOR_PIN4);
+//    ledcAttachPin(3,);
 }
 
 void ESC_Cali() {

@@ -3,6 +3,8 @@
 //
 
 #include "pid.h"
+PID anglePitch_ctrl,angleRoll_ctrl,angleYaw_ctrl;
+PID angularVelPitch_ctrl,angularVelRoll_ctrl,angularVelYaw_ctrl;
 void PID::init(float P,float I,float D,float destination,float T)
 {
     kP=P;

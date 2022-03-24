@@ -19,6 +19,7 @@ void pid_ctrl_init()
     angularVelRoll_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
     angularVelYaw_ctrl.init(1,0,0,0,PID_CTRL_PERIOD);
 }
+
 void att_calc_init()
 {
     imu.init();
@@ -83,6 +84,7 @@ void att_calc_init()
         angleYaw_ctrl.calculate(angleYaw);
         angularVelYaw_ctrl.setDes(angleYaw_ctrl.output);
         angularVelYaw_ctrl.calculate(angularVelYaw);
+
         motor_pwm_calculate(angularVelPitch_ctrl.output,angularVelRoll_ctrl.output,angularVelYaw_ctrl.output);
         motor_set_speed();
     }
