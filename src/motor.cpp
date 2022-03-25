@@ -9,7 +9,7 @@ float Pitch_Motor_1, Pitch_Motor_2, Pitch_Motor_3, Pitch_Motor_4,
         Roll_Motor_1, Roll_Motor_2, Roll_Motor_3, Roll_Motor_4,
         Yaw_Motor_1, Yaw_Motor_2, Yaw_Motor_3, Yaw_Motor_4;
 uint32_t M1, M2, M3, M4;
-
+// TODO:set Macros about ESC_PWM_in and Motor
 void motor_init() {
 //    ledcSetup(0,500,10);
 //    ledcSetup(1,500,10);

@@ -15,6 +15,9 @@
 void att_calc_init();
 void pid_ctrl_init();
 
+void nonRtosTask();
+
+
 extern Mahony mahony;
 
 #endif //SOURCE_TASKS_H
