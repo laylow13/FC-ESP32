@@ -12,9 +12,12 @@ public:
 private:
     float period,errInt,errDiff,errLast,errCur;
 public:
+//    PID(float kP,float kI,float kD,float des,float T);
     void init(float kP,float kI,float kD,float des,float T);
     void calculate(float currentData);
     void setDes(float newDes);
+    void getParamList(char *str);
+
 };
 extern PID anglePitch_ctrl,angleRoll_ctrl,angleYaw_ctrl;
 extern PID angularVelPitch_ctrl,angularVelRoll_ctrl,angularVelYaw_ctrl;

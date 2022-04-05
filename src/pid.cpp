@@ -3,6 +3,7 @@
 //
 
 #include "pid.h"
+#include "Arduino.h"
 PID anglePitch_ctrl,angleRoll_ctrl,angleYaw_ctrl;
 PID angularVelPitch_ctrl,angularVelRoll_ctrl,angularVelYaw_ctrl;
 void PID::init(float P,float I,float D,float destination,float T)
@@ -25,5 +26,13 @@ void PID::setDes(float newDes)
 {
     des=newDes;
 }
+
+void PID::getParamList(char *str) {
+}
+
+//PID::PID(float kP, float kI, float kD, float des, float T) {
+//
+//}
+
 PID angleX,angleY,angleZ;
 PID angularVelX,angularVelY,angularVelZ;

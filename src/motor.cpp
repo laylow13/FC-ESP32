@@ -9,29 +9,29 @@ float Pitch_Motor_1, Pitch_Motor_2, Pitch_Motor_3, Pitch_Motor_4,
         Roll_Motor_1, Roll_Motor_2, Roll_Motor_3, Roll_Motor_4,
         Yaw_Motor_1, Yaw_Motor_2, Yaw_Motor_3, Yaw_Motor_4;
 uint32_t M1, M2, M3, M4;
-// TODO:set Macros about ESC_PWM_in and Motor
+
 void motor_init() {
-//    ledcSetup(0,500,10);
-//    ledcSetup(1,500,10);
-//    ledcSetup(2,500,10);
-//    ledcSetup(3,500,10);
-//
-//    ledcAttachPin(0,MOTOR_PIN1);
-//    ledcAttachPin(1,MOTOR_PIN2);
-//    ledcAttachPin(2,MOTOR_PIN3);
-//    ledcAttachPin(3,);
+    ledcSetup(0,250,12);
+    ledcSetup(1,250,12);
+    ledcSetup(2,250,12);
+    ledcSetup(3,250,12);
+
+    ledcAttachPin(MOTOR_PIN1,0);
+    ledcAttachPin(MOTOR_PIN2,1);
+    ledcAttachPin(MOTOR_PIN3,2);
+    ledcAttachPin(MOTOR_PIN4,3);
 }
 
-void ESC_Cali() {
-//    ledcWrite(0,UPPER_DUTY);
-//    ledcWrite(1,UPPER_DUTY);
-//    ledcWrite(2,UPPER_DUTY);
-//    ledcWrite(3,UPPER_DUTY);
-//    delay(ESC_CALI_DELAY);
-//    ledcWrite(0,SUBER_DUTY);
-//    ledcWrite(1,SUBER_DUTY);
-//    ledcWrite(2,SUBER_DUTY);
-//    ledcWrite(3,SUBER_DUTY);
+void esc_cali() {
+    ledcWrite(0,UPPER_DUTY);
+    ledcWrite(1,UPPER_DUTY);
+    ledcWrite(2,UPPER_DUTY);
+    ledcWrite(3,UPPER_DUTY);
+    delay(ESC_CALI_DELAY);
+    ledcWrite(0,SUBER_DUTY);
+    ledcWrite(1,SUBER_DUTY);
+    ledcWrite(2,SUBER_DUTY);
+    ledcWrite(3,SUBER_DUTY);
 }
 
 void motor_set_speed() {

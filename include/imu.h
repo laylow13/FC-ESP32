@@ -6,9 +6,13 @@
 #define SOURCE_IMU_H
 #include "MPU6050.h"
 
+#ifndef IMU_I2C_SWAP_SEQUENCE
 #define IMU_I2C_SDA 17  //need to be edited!
 #define IMU_I2C_SCL 16
-
+#else
+#define IMU_I2C_SDA 16
+#define IMU_I2C_SCL 17
+#endif
 
 class IMU
 {
