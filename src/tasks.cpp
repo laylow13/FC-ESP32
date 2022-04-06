@@ -46,9 +46,9 @@ void att_calc_init() {
     imu.init();
 //    -324.00,99.00,-96.00
 //   -31.00 12.00 -8.00
-    imu.gx_error = -76.00;
-    imu.gy_error = 19.00;
-    imu.gz_error = -45.00;
+    imu.gx_error = -49.00;
+    imu.gy_error = 9.00;
+    imu.gz_error = -20.00;
 //    imu.getGyroStaticError();
     Serial.print(imu.gx_error);
     Serial.print(imu.gy_error);
@@ -130,9 +130,11 @@ uint8_t wifi_udp_init() {
     attFeedbackData_t attData;
     bool udpSendFlag = false;
     serialPrintData_t toPrint;
+    char attStr[60]={0};
     uint8_t count=0;
     float gx, gy, gz, gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted;
     while (1) {
+        //TODO:Sometimes the raw data read is wrong
         imu.update();
         gx = (imu.gx - imu.gx_error) * gyroScale;
         gy = (imu.gy - imu.gy_error) * gyroScale;
@@ -145,24 +147,31 @@ uint8_t wifi_udp_init() {
         ayFilted = Filters.AccyLPF.output;
         azFilted = Filters.AcczLPF.output;
         mahony.updateIMU(gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted);
+
         attData={gxFilted,gyFilted,gzFilted,mahony.getPitch(),mahony.getRoll(),mahony.getYaw()}; // deg & deg/s !!
         xQueueSendToFront(attDataQueue,(void *)&attData,1/portTICK_PERIOD_MS);
+
         if (xSemaphoreTake(attUdpSend, 0))
             udpSendFlag = true;
         else if (xSemaphoreTake(attUdpEnd, 0))
             udpSendFlag = false;
-        if (udpSendFlag && count) {
-            char attStr[60]={0};
+
+        if (udpSendFlag && count==9) {
             sprintf(attStr, "angle:0;pitchCur:%.2f;rollCur:%.2f;yawCur:%.2f;",
                     mahony.getPitch(), mahony.getRoll(), mahony.getYaw());
             xQueueSend(udpSendDataQueue, attStr, 1);
         }
-        (count==0)? (count=1):(count=0);
+        if(count==9)
+            count=0;
+        else
+            count++;
+
         toPrint.type = "attitude";
         toPrint.data[0] = mahony.getPitch();
         toPrint.data[1] = mahony.getRoll();
         toPrint.data[2] = mahony.getYaw();
         xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
+
         vTaskDelayUntil(&lastwaketime, 5 / portTICK_PERIOD_MS);
     }
 }
@@ -309,3 +318,29 @@ void nonRtosTask() {
     Serial.println(mahony.getYaw());
 }
 
+static void printImuData(float gx,float gy,float gz, float ax,float ay,float az)
+{
+    float norm;
+    norm=ax*ax+ay*ay+az*az;
+    norm= sqrtf(norm);
+    Serial.print("acc:");
+    Serial.print(ax/norm);
+    Serial.print(",");
+    Serial.print(ay/norm);
+    Serial.print(",");
+    Serial.println(az/norm);
+
+    Serial.print("gyro:");
+    Serial.print(gx);
+    Serial.print(",");
+    Serial.print(gy);
+    Serial.print(",");
+    Serial.println(gz);
+
+    Serial.print("attitude:");
+    Serial.print(mahony.getPitch());
+    Serial.print(",");
+    Serial.print(mahony.getRoll());
+    Serial.print(",");
+    Serial.println(mahony.getYaw());
+}

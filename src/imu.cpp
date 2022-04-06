@@ -23,9 +23,11 @@ void IMU::init()
     imu.initialize();
 }
 
-void IMU::update()
-{
-    imu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+int8_t IMU::update()
+{   int8_t res;
+    res= imu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    return res;
+
 }
 
 int16_t IMU::getAccelX()

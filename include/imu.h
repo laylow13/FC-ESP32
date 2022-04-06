@@ -28,7 +28,7 @@ public:
 public:
     void init();
     void getGyroStaticError();
-    void update();
+    int8_t update();
 
     int16_t getAccelX();
     int16_t getAccelY();
