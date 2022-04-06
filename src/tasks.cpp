@@ -15,6 +15,7 @@
 #define WIFI_PASSWORD "12345678"
 #endif
 
+static void printImuData(float gx,float gy,float gz, float ax,float ay,float az);
 
 Mahony mahony;
 AsyncUDP udp;
@@ -46,10 +47,12 @@ void att_calc_init() {
     imu.init();
 //    -324.00,99.00,-96.00
 //   -31.00 12.00 -8.00
-    imu.gx_error = -49.00;
-    imu.gy_error = 9.00;
-    imu.gz_error = -20.00;
+    imu.gx_error = -76.00;
+    imu.gy_error = 19.00;
+    imu.gz_error = -45.00;
+//#ifdef GYRO_CALI
 //    imu.getGyroStaticError();
+//#endif
     Serial.print(imu.gx_error);
     Serial.print(imu.gy_error);
     Serial.println(imu.gz_error);
@@ -66,7 +69,7 @@ void onPacketCallBack(AsyncUDPPacket packet) {
 }
 
 uint8_t wifi_udp_init() {
-    uint8_t count;
+    uint8_t count=0;
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.println("Connecting");
@@ -81,7 +84,8 @@ uint8_t wifi_udp_init() {
         }
     }
     count=0;
-    Serial.println("UDP initializng");
+    Serial.println(WiFi.localIP());
+    Serial.println("UDP initializing");
     while (!udp.listen(UDP_PORT)) //等待udp监听设置成功
     {
         Serial.println(".");
@@ -92,10 +96,13 @@ uint8_t wifi_udp_init() {
 
 //udp资源守护任务
 [[noreturn]] void udp_send_task(void *pvParameters) {
-    char toSend[300];
+    char toSend[300]={0};
+    serialPrintData_t toPrint;
     while (1) {
         xQueueReceive(udpSendDataQueue, toSend, portMAX_DELAY);
         udp.writeTo((uint8_t *) toSend, strlen(toSend), remoteIP, 45454);
+//        toPrint.type="udp_send";
+//        xQueueSend(serialPrintQueue,&toPrint,1/portTICK_PERIOD_MS);
     }
 }
 
@@ -104,28 +111,34 @@ uint8_t wifi_udp_init() {
     paramChange_t newParam;
     String parserStr;
     int index;
+    serialPrintData_t toPrint;
     while (1) {
         xQueueReceive(udpRecDataQueue, &recData, portMAX_DELAY);
-        if (strcmp( (char *)recData.data , "connect")) {
+        if (strcmp( (char *)recData.data , "connect")== 0) {
+            toPrint.type="rec_connect";
             xSemaphoreGive(paramUdpSend);
             xSemaphoreGive(attUdpSend);
-        } else if (strcmp((char *) recData.data,"end")) {
+        } else if (strcmp((char *) recData.data,"end")== 0) {
+            toPrint.type="rec_end";
             xSemaphoreGive(attUdpEnd);
         } else {
+            toPrint.type="rec_data";
             parserStr = (char *) recData.data;
             index = parserStr.indexOf(":");
-            if (index == -1) {
-                parserStr.substring(0, index - 1).toCharArray(newParam.param, 10);
-                newParam.value = parserStr.substring(index + 1, parserStr.length() - 2).toFloat();
+            if (index != -1) {
+                parserStr.substring(0, index).toCharArray(newParam.param, 10);
+                newParam.value = parserStr.substring(index + 1, parserStr.length()).toFloat();
                 xQueueSend(paramChangeQueue, &newParam, 3);
             }
         }
+        xQueueSend(serialPrintQueue, &toPrint, 1);
     }
 }
 
 
 [[noreturn]] void att_update_task(void *pvParameters) {
-    TickType_t lastwaketime;
+
+    TickType_t lastwaketime=xTaskGetTickCount();
     float gyroScale = 0.061;
     attFeedbackData_t attData;
     bool udpSendFlag = false;
@@ -133,8 +146,13 @@ uint8_t wifi_udp_init() {
     char attStr[60]={0};
     uint8_t count=0;
     float gx, gy, gz, gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted;
+
     while (1) {
-        //TODO:Sometimes the raw data read is wrong
+
+//        toPrint.type="att_update_time";
+//        toPrint.data[0]=micros();
+//        Serial.println(micros());
+
         imu.update();
         gx = (imu.gx - imu.gx_error) * gyroScale;
         gy = (imu.gy - imu.gy_error) * gyroScale;
@@ -148,8 +166,19 @@ uint8_t wifi_udp_init() {
         azFilted = Filters.AcczLPF.output;
         mahony.updateIMU(gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted);
 
-        attData={gxFilted,gyFilted,gzFilted,mahony.getPitch(),mahony.getRoll(),mahony.getYaw()}; // deg & deg/s !!
-        xQueueSendToFront(attDataQueue,(void *)&attData,1/portTICK_PERIOD_MS);
+        if(count==9) count=0;
+        else count++;
+
+//        printImuData(gx,gy,gz,axFilted,ayFilted,azFilted);
+
+        attData={
+                .gx=gxFilted,
+                .gy=gyFilted,
+                .gz=gzFilted,
+                .pitch=mahony.getPitch(),
+                .roll=mahony.getRoll(),
+                .yaw=mahony.getYaw()}; // deg & deg/s !!
+        xQueueSendToFront(attDataQueue,&attData,1/portTICK_PERIOD_MS);
 
         if (xSemaphoreTake(attUdpSend, 0))
             udpSendFlag = true;
@@ -157,14 +186,11 @@ uint8_t wifi_udp_init() {
             udpSendFlag = false;
 
         if (udpSendFlag && count==9) {
-            sprintf(attStr, "angle:0;pitchCur:%.2f;rollCur:%.2f;yawCur:%.2f;",
+            sprintf(attStr, "angle:0;pitchCur:%3.2f;rollCur:%3.2f;yawCur:%3.2f;",
                     mahony.getPitch(), mahony.getRoll(), mahony.getYaw());
-            xQueueSend(udpSendDataQueue, attStr, 1);
+            xQueueSend(udpSendDataQueue, attStr, 0);
         }
-        if(count==9)
-            count=0;
-        else
-            count++;
+
 
         toPrint.type = "attitude";
         toPrint.data[0] = mahony.getPitch();
@@ -172,7 +198,11 @@ uint8_t wifi_udp_init() {
         toPrint.data[2] = mahony.getYaw();
         xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
 
-        vTaskDelayUntil(&lastwaketime, 5 / portTICK_PERIOD_MS);
+//        toPrint.data[1]=micros();
+//        toPrint.longData=lastwaketime;
+//        xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
+
+        vTaskDelayUntil(&lastwaketime, 5/portTICK_PERIOD_MS);
     }
 }
 
@@ -186,19 +216,26 @@ uint8_t wifi_udp_init() {
         Serial.print(",");
         Serial.print(dataToPrint.data[1]);
         Serial.print(",");
-        Serial.println(dataToPrint.data[2]);
+        Serial.print(dataToPrint.data[2]);
+        Serial.print(",");
+        Serial.print(dataToPrint.longData);
+        Serial.print(",");
+        Serial.println(dataToPrint.string);
     }
 }
 
 [[noreturn]] void pid_calculate_task(void *pvParameters) {
-    TickType_t lastwaketime;
+    TickType_t lastwaketime=xTaskGetTickCount();
     attFeedbackData_t attData;
     paramChange_t newParam;
     serialPrintData_t toPrint;
+    char paramList[300]={0};
     char letter0,letter2;
     float angleYaw, angleRoll, anglePitch, angularVelYaw, angularVelRoll, angularVelPitch;
     while (1) {
-        if(xQueueReceive(paramChangeQueue,&newParam,0)) {
+//        toPrint.type="pid_cycle_time";
+//        toPrint.data[0]=micros();
+        if(xQueueReceive(paramChangeQueue,&newParam,0)==pdTRUE) {
             letter0=newParam.param[0];
             letter2=newParam.param[2];
             if(letter0=='o')
@@ -291,19 +328,23 @@ uint8_t wifi_udp_init() {
         motor_pwm_calculate(angularVelPitch_ctrl.output, angularVelRoll_ctrl.output, angularVelYaw_ctrl.output);
         motor_set_speed();
 
-        if (xSemaphoreTake(paramUdpSend, 0)) {
-            char paramList[300]={0};
-            sprintf(paramList, "param;okp1:%.2f;oki1:%.2f;okd1:%.2f;ikp1:%.2f;iki1:%.2f;ikd1:%.2f;"
-                               "okp2:%.2f;oki2:%.2f;okd2:%.2f;ikp2:%.2f;iki2:%.2f;ikd2:%.2f;"
-                               "okp3:%.2f;oki3:%.2f;okd3:%.2f;ikp3:%.2f;iki3:%.2f;ikd3:%.2f;",
+        if (xSemaphoreTake(paramUdpSend, 0)==pdTRUE) {
+            sprintf(paramList,"param;okp1:%2.2f;oki1:%2.2f;okd1:%2.2f;ikp1:%2.2f;iki1:%2.2f;ikd1:%2.2f;"
+                              "okp2:%2.2f;oki2:%2.2f;okd2:%2.2f;ikp2:%2.2f;iki2:%2.2f;ikd2:%2.2f;"
+                              "okp3:%2.2f;oki3:%2.2f;okd3:%2.2f;ikp3:%2.2f;iki3:%2.2f;ikd3:%2.2f;",
                     anglePitch_ctrl.kP, anglePitch_ctrl.kI, anglePitch_ctrl.kD,
                     angularVelPitch_ctrl.kP, angularVelPitch_ctrl.kI, angularVelPitch_ctrl.kD,
                     angleRoll_ctrl.kP, angleRoll_ctrl.kI, angleRoll_ctrl.kD,
                     angularVelRoll_ctrl.kP, angularVelRoll_ctrl.kI, angularVelRoll_ctrl.kD,
                     angleYaw_ctrl.kP, angleYaw_ctrl.kI, angleYaw_ctrl.kD,
                     angularVelYaw_ctrl.kP, angularVelYaw_ctrl.kI, angularVelYaw_ctrl.kD);
-            xQueueSend(udpSendDataQueue, paramList, 3);
+            xQueueSend(udpSendDataQueue, paramList, 3/ portTICK_PERIOD_MS);
+
+            toPrint.type="paramListSend";
+            xQueueSend(serialPrintQueue,  &toPrint, 1 / portTICK_PERIOD_MS);
         }
+//        toPrint.data[1]=micros();
+//        xQueueSend(serialPrintQueue,  &toPrint, 1 / portTICK_PERIOD_MS);
         vTaskDelayUntil(&lastwaketime, 5 / portTICK_PERIOD_MS);
     }
 }

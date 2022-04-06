@@ -20,13 +20,13 @@ void setup() {
 //    esc_cali();
     if(wifi_udp_init())
     {
-        xTaskCreatePinnedToCore(udp_send_task,"udp_send",1024, nullptr,1, nullptr,0);
+        xTaskCreatePinnedToCore(udp_send_task,"udp_send",2048, nullptr,1, nullptr,0);
         xTaskCreatePinnedToCore(udp_parser_data_task,"udp_parser",1024, nullptr,1, nullptr,1);
     }
 
-    xTaskCreatePinnedToCore(att_update_task, "att_updata", 2048, nullptr, 2, nullptr, 0);
-    xTaskCreatePinnedToCore(serial_print_task, "serial_print", 1024, nullptr, 1, nullptr, 0);
-    xTaskCreatePinnedToCore(pid_calculate_task, "pid_ctrl", 2048, nullptr,2 , nullptr, 1);
+    xTaskCreatePinnedToCore(att_update_task, "att_updata", 2048, nullptr, 2, nullptr, 1);//must be core1
+    xTaskCreatePinnedToCore(serial_print_task, "serial_print", 1024, nullptr, 1, nullptr, 1);
+    xTaskCreatePinnedToCore(pid_calculate_task, "pid_ctrl", 3072, nullptr,2 , nullptr, 0);
 }
 
 void loop() {

@@ -23,7 +23,9 @@ void nonRtosTask();
 
 typedef struct {
     char *type;
-    float data[3];
+    float data[3]={0};
+    char string[10]={0};
+    uint32_t longData=0;
 } serialPrintData_t;
 
 typedef struct {
