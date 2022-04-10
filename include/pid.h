@@ -8,7 +8,7 @@ class PID
 {
 public:
     float kP,kI,kD;
-    float des,cur,output;
+    float des,cur,output=0;
 private:
     float period,errInt,errDiff,errLast,errCur;
 public:

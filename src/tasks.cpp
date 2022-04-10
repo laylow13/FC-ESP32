@@ -8,7 +8,7 @@
 #include "motor.h"
 
 
-#define PID_CTRL_PERIOD 5 //:ms
+#define PID_CTRL_PERIOD 0.005 //:s
 #define UDP_PORT 4399
 #ifndef EXT_WIFI_CONFIG
 #define WIFI_SSID "lay"
@@ -35,10 +35,10 @@ xSemaphoreHandle attUdpEnd = xSemaphoreCreateBinary();
 
 void pid_ctrl_init() {
 //    TODO:1.tune kP kI kD
-    anglePitch_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
+    anglePitch_ctrl.init(5, 0, 0, 0, PID_CTRL_PERIOD);
     angleRoll_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
     angleYaw_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
-    angularVelPitch_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
+    angularVelPitch_ctrl.init(7, 0, 0, 0, PID_CTRL_PERIOD);
     angularVelRoll_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
     angularVelYaw_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
 }
@@ -233,8 +233,6 @@ uint8_t wifi_udp_init() {
     char letter0,letter2;
     float angleYaw, angleRoll, anglePitch, angularVelYaw, angularVelRoll, angularVelPitch;
     while (1) {
-//        toPrint.type="pid_cycle_time";
-//        toPrint.data[0]=micros();
         if(xQueueReceive(paramChangeQueue,&newParam,0)==pdTRUE) {
             letter0=newParam.param[0];
             letter2=newParam.param[2];
@@ -317,13 +315,14 @@ uint8_t wifi_udp_init() {
         angularVelPitch_ctrl.setDes(anglePitch_ctrl.output);
         angularVelPitch_ctrl.calculate(angularVelPitch);
 
-        angleRoll_ctrl.calculate(angleRoll);
-        angularVelRoll_ctrl.setDes(angleRoll_ctrl.output);
-        angularVelRoll_ctrl.calculate(angularVelRoll);
+//        angleRoll_ctrl.calculate(angleRoll);
+//        angularVelRoll_ctrl.setDes(angleRoll_ctrl.output);
+//        angularVelRoll_ctrl.calculate(angularVelRoll);
 
-        angleYaw_ctrl.calculate(angleYaw);
-        angularVelYaw_ctrl.setDes(angleYaw_ctrl.output);
-        angularVelYaw_ctrl.calculate(angularVelYaw);
+        //just control the angular velocity of axis yaw
+//        angleYaw_ctrl.calculate(angleYaw);
+//        angularVelYaw_ctrl.setDes(angleYaw_ctrl.output);
+//        angularVelYaw_ctrl.calculate(angularVelYaw);
 
         motor_pwm_calculate(angularVelPitch_ctrl.output, angularVelRoll_ctrl.output, angularVelYaw_ctrl.output);
         motor_set_speed();
@@ -343,8 +342,18 @@ uint8_t wifi_udp_init() {
             toPrint.type="paramListSend";
             xQueueSend(serialPrintQueue,  &toPrint, 1 / portTICK_PERIOD_MS);
         }
-//        toPrint.data[1]=micros();
-//        xQueueSend(serialPrintQueue,  &toPrint, 1 / portTICK_PERIOD_MS);
+
+//        toPrint.type="control";
+//        toPrint.data[0]=anglePitch_ctrl.output;
+//        toPrint.data[1]=angularVelPitch_ctrl.output;
+//        xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
+        toPrint.type="motorspeed";
+        toPrint.data[0]=M1;
+        toPrint.data[1]=M2;
+        toPrint.data[2]=M3;
+        toPrint.longData=M4;
+        xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
+
         vTaskDelayUntil(&lastwaketime, 5 / portTICK_PERIOD_MS);
     }
 }

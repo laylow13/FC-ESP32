@@ -15,22 +15,23 @@
 #define ESC_CALI_DELAY 2000
 #define UPPER_DUTY  2600
 #define SUBER_DUTY   700
-#define Motor_PWM_MIN		980
+#define Motor_PWM_MIN		 980// 980
 #define Motor_PWM_MAX		2500
-#define Motor_PWM_INIT	    1300
-#define LAMDA_PITCH  23000.0
-#define LAMDA_ROLL 23000.0
-#define LAMDA_YAW 25000.0
+#define Motor_PWM_INIT	     1300//1300
+#define LAMDA_PITCH   5750.0 //23000.0
+#define LAMDA_ROLL   5750.0 //23000.0
+#define LAMDA_YAW    6000.0 //25000.0
 
 
 
 void motor_init();
 void esc_cali();
 void motor_set_speed();
-void pwm_limit(uint32_t *pwm);
+void pwm_limit(uint16_t *pwm);
 void motor_pwm_calculate(float f_ut_Pitch, float f_ut_Roll, float f_ut_Yaw);
 
 
 extern uint16_t duty[4];
+extern uint16_t M1, M2, M3, M4;
 
 #endif //SOURCE_MOTOR_H
