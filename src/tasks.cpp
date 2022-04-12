@@ -35,20 +35,19 @@ xSemaphoreHandle attUdpEnd = xSemaphoreCreateBinary();
 
 void pid_ctrl_init() {
 //    TODO:1.tune kP kI kD
-    anglePitch_ctrl.init(5, 0, 0, 0, PID_CTRL_PERIOD);
-    angleRoll_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
-    angleYaw_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
-    angularVelPitch_ctrl.init(7, 0, 0, 0, PID_CTRL_PERIOD);
-    angularVelRoll_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
-    angularVelYaw_ctrl.init(1, 0, 0, 0, PID_CTRL_PERIOD);
+    anglePitch_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
+    angleRoll_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
+    angleYaw_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
+    angularVelPitch_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
+    angularVelRoll_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
+    angularVelYaw_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
 }
 
 void att_calc_init() {
     imu.init();
-//    -324.00,99.00,-96.00
-//   -31.00 12.00 -8.00
+//    -76.0024.00-44.00
     imu.gx_error = -76.00;
-    imu.gy_error = 19.00;
+    imu.gy_error = 24.00;
     imu.gz_error = -45.00;
 //#ifdef GYRO_CALI
 //    imu.getGyroStaticError();
@@ -148,11 +147,6 @@ uint8_t wifi_udp_init() {
     float gx, gy, gz, gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted;
 
     while (1) {
-
-//        toPrint.type="att_update_time";
-//        toPrint.data[0]=micros();
-//        Serial.println(micros());
-
         imu.update();
         gx = (imu.gx - imu.gx_error) * gyroScale;
         gy = (imu.gy - imu.gy_error) * gyroScale;
@@ -169,7 +163,7 @@ uint8_t wifi_udp_init() {
         if(count==9) count=0;
         else count++;
 
-//        printImuData(gx,gy,gz,axFilted,ayFilted,azFilted);
+        printImuData(gxFilted,gyFilted,gzFilted,axFilted,ayFilted,azFilted);
 
         attData={
                 .gx=gxFilted,
@@ -197,10 +191,6 @@ uint8_t wifi_udp_init() {
         toPrint.data[1] = mahony.getRoll();
         toPrint.data[2] = mahony.getYaw();
         xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
-
-//        toPrint.data[1]=micros();
-//        toPrint.longData=lastwaketime;
-//        xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
 
         vTaskDelayUntil(&lastwaketime, 5/portTICK_PERIOD_MS);
     }
@@ -347,12 +337,12 @@ uint8_t wifi_udp_init() {
 //        toPrint.data[0]=anglePitch_ctrl.output;
 //        toPrint.data[1]=angularVelPitch_ctrl.output;
 //        xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
-        toPrint.type="motorspeed";
-        toPrint.data[0]=M1;
-        toPrint.data[1]=M2;
-        toPrint.data[2]=M3;
-        toPrint.longData=M4;
-        xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
+//        toPrint.type="motorspeed";
+//        toPrint.data[0]=M1;
+//        toPrint.data[1]=M2;
+//        toPrint.data[2]=M3;
+//        toPrint.longData=M4;
+//        xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
 
         vTaskDelayUntil(&lastwaketime, 5 / portTICK_PERIOD_MS);
     }
@@ -378,19 +368,20 @@ static void printImuData(float gx,float gy,float gz, float ax,float ay,float az)
     Serial.print(",");
     Serial.print(ay/norm);
     Serial.print(",");
-    Serial.println(az/norm);
+    Serial.print(az/norm);
+    Serial.print(",");
 
-    Serial.print("gyro:");
+//    Serial.print("gyro:");
     Serial.print(gx);
     Serial.print(",");
     Serial.print(gy);
     Serial.print(",");
     Serial.println(gz);
 
-    Serial.print("attitude:");
-    Serial.print(mahony.getPitch());
-    Serial.print(",");
-    Serial.print(mahony.getRoll());
-    Serial.print(",");
-    Serial.println(mahony.getYaw());
+//    Serial.print("attitude:");
+//    Serial.print(mahony.getPitch());
+//    Serial.print(",");
+//    Serial.print(mahony.getRoll());
+//    Serial.print(",");
+//    Serial.println(mahony.getYaw());
 }

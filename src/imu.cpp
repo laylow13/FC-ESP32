@@ -78,6 +78,7 @@ void IMU::getGyroStaticError(void)
     gz_error = (float)(gyroz_add/STATIC_ERROR_SAMPLE_TIME);
 }
 
+//butterworth filter
 void Butterworth50HzLPF(Bw50HzLPFTypeDef* pLPF)
 {
     pLPF->xv[0] = pLPF->xv[1]; pLPF->xv[1] = pLPF->xv[2]; pLPF->xv[2] = pLPF->xv[3];

@@ -13,11 +13,11 @@
 #define MOTOR_PIN3 21
 #define MOTOR_PIN4 32
 #define ESC_CALI_DELAY 2000
-#define UPPER_DUTY  2600
-#define SUBER_DUTY   700
-#define Motor_PWM_MIN		 980// 980
+#define UPPER_DUTY  2300
+#define SUBER_DUTY   1000
+#define Motor_PWM_MIN		1000// 980
 #define Motor_PWM_MAX		2500
-#define Motor_PWM_INIT	     1300//1300
+#define Motor_PWM_INIT	     1400//1300
 #define LAMDA_PITCH   5750.0 //23000.0
 #define LAMDA_ROLL   5750.0 //23000.0
 #define LAMDA_YAW    6000.0 //25000.0
