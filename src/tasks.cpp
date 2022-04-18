@@ -376,12 +376,12 @@ static void printImuData(float gx,float gy,float gz, float ax,float ay,float az)
     Serial.print(",");
     Serial.print(gy);
     Serial.print(",");
-    Serial.println(gz);
+    Serial.print(gz);
 
-//    Serial.print("attitude:");
-//    Serial.print(mahony.getPitch());
-//    Serial.print(",");
-//    Serial.print(mahony.getRoll());
-//    Serial.print(",");
-//    Serial.println(mahony.getYaw());
+    Serial.print(",");
+    Serial.print(mahony.getPitch());
+    Serial.print(",");
+    Serial.print(mahony.getRoll());
+    Serial.print(",");
+    Serial.println(mahony.getYaw());
 }
