@@ -5,7 +5,10 @@
 #ifndef SOURCE_IMU_H
 #define SOURCE_IMU_H
 #include "MPU6050.h"
-
+#include "ICM20689.h"
+// #include "icm20689drv.h"
+#include "wire.h"
+#ifndef ESPFC
 #ifndef IMU_I2C_SWAP_SEQUENCE
 #define IMU_I2C_SDA 17  //need to be edited!
 #define IMU_I2C_SCL 16
@@ -13,17 +16,29 @@
 #define IMU_I2C_SDA 16
 #define IMU_I2C_SCL 17
 #endif
-
+#else
+#define IMU_I2C_SDA 26  //need to be edited!
+#define IMU_I2C_SCL 27
+#endif
 class IMU
 {
 private:
-    MPU6050 imu;
-
+    MPU6050 mpu6050;//兼容mpu9250，6500 
+    // ICM20689 icm20689(0x68);
 
 public:
     int16_t ax, ay, az;
     int16_t gx, gy, gz;
     float gx_error,gy_error,gz_error;
+    enum IMU_TYPE
+    {
+        MPU6050,
+        MPU9250,
+        MPU6500,
+        ICM20689,
+        ICM42605
+    };
+    uint8_t imu_type;
 
 public:
     void init();
