@@ -17,10 +17,10 @@
 #define SUBER_DUTY   1000
 #define Motor_PWM_MIN		1000// 980
 #define Motor_PWM_MAX		2500
-#define Motor_PWM_INIT	     1400//1300
-#define LAMDA_PITCH   5750.0 //23000.0
-#define LAMDA_ROLL   5750.0 //23000.0
-#define LAMDA_YAW    6000.0 //25000.0
+#define Motor_PWM_INIT	     1300//1300
+#define LAMDA_PITCH   15000.0 //23000.0
+#define LAMDA_ROLL   15000.0 //23000.0
+#define LAMDA_YAW    15000.0 //25000.0
 
 
 

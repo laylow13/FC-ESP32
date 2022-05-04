@@ -17,9 +17,11 @@ void IMU::init()
 {
     Wire.begin(IMU_I2C_SDA, IMU_I2C_SCL);
     Wire.setClock(400000);
-    Serial.println("............");
-    while (!imu.testConnection());
-    Serial.print("............");
+    //没有检验whoami，为简易的适配其他IMU
+    //TO DO:检验whoami
+    uint8_t deviceId = imu.getDeviceID();
+    Serial.println(deviceId);
+    Serial.println("Imu find!");
     imu.initialize();
 }
 

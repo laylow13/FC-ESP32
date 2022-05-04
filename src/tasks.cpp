@@ -37,18 +37,19 @@ void pid_ctrl_init() {
 //    TODO:1.tune kP kI kD
     anglePitch_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
     angleRoll_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
-    angleYaw_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
+    angleYaw_ctrl.init(0.0, 0, 0, 0, PID_CTRL_PERIOD);
     angularVelPitch_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
     angularVelRoll_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
-    angularVelYaw_ctrl.init(0.1, 0, 0, 0, PID_CTRL_PERIOD);
+    angularVelYaw_ctrl.init(0.0, 0, 0, 0, PID_CTRL_PERIOD);
 }
 
 void att_calc_init() {
     imu.init();
 //    -76.0024.00-44.00
-    imu.gx_error = -76.00;
-    imu.gy_error = 24.00;
-    imu.gz_error = -45.00;
+//   97.00-27.009.00
+    imu.gx_error = 97.00;
+    imu.gy_error = -27.00;
+    imu.gz_error = 9.00;
 //#ifdef GYRO_CALI
 //    imu.getGyroStaticError();
 //#endif
@@ -89,7 +90,7 @@ uint8_t wifi_udp_init() {
     {
         Serial.println(".");
     }
-    udp.onPacket(onPacketCallBack); //注册收到数据包事件
+    udp.onPacket(onPacketCallBack); //注册收到数据包事件?
     return 1;
 }
 
@@ -256,7 +257,7 @@ uint8_t wifi_udp_init() {
                         angleYaw_ctrl.kD=newParam.value;
                 }
             }
-            // TODO：这tm写的是什么玩意
+            // TODO：这tm写的是什么玩�?
             else if(letter0=='i')
             {
                 if(letter2=='p')
@@ -316,6 +317,14 @@ uint8_t wifi_udp_init() {
 
         motor_pwm_calculate(angularVelPitch_ctrl.output, angularVelRoll_ctrl.output, angularVelYaw_ctrl.output);
         motor_set_speed();
+
+        // Serial.print(angularVelPitch_ctrl.output);
+        // Serial.print(",");
+        // Serial.print(M1);
+        // Serial.print(",");
+        // Serial.print(M4);
+        // Serial.print(",");
+        // Serial.println(attData.pitch);
 
         if (xSemaphoreTake(paramUdpSend, 0)==pdTRUE) {
             sprintf(paramList,"param;okp1:%2.2f;oki1:%2.2f;okd1:%2.2f;ikp1:%2.2f;iki1:%2.2f;ikd1:%2.2f;"
