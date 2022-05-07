@@ -15,7 +15,7 @@
 #define WIFI_PASSWORD "12345678"
 #endif
 
-static void printImuData(float gx,float gy,float gz, float ax,float ay,float az);
+static void printImuData(float gx, float gy, float gz, float ax, float ay, float az);
 
 Mahony mahony;
 AsyncUDP udp;
@@ -45,16 +45,12 @@ void pid_ctrl_init() {
 
 void att_calc_init() {
     imu.init();
-//    -76.0024.00-44.00
-//   97.00-27.009.00
-    imu.gx_error = 97.00;
-    imu.gy_error = -27.00;
-    imu.gz_error = 9.00;
-//#ifdef GYRO_CALI
-//    imu.getGyroStaticError();
-//#endif
+    imu.getGyroStaticError();
+    Serial.print("Gyro error: ");
     Serial.print(imu.gx_error);
+    Serial.print(",");
     Serial.print(imu.gy_error);
+    Serial.print(",");
     Serial.println(imu.gz_error);
     mahony.begin(200);
 }
@@ -69,7 +65,7 @@ void onPacketCallBack(AsyncUDPPacket packet) {
 }
 
 uint8_t wifi_udp_init() {
-    uint8_t count=0;
+    uint8_t count = 0;
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.println("Connecting");
@@ -77,13 +73,12 @@ uint8_t wifi_udp_init() {
         delay(500);
         Serial.println(".");
         count++;
-        if(count>10)
-        {
+        if (count > 10) {
             Serial.println("connect failed");
             return 0;
         }
     }
-    count=0;
+    count = 0;
     Serial.println(WiFi.localIP());
     Serial.println("UDP initializing");
     while (!udp.listen(UDP_PORT)) //等待udp监听设置成功
@@ -96,7 +91,7 @@ uint8_t wifi_udp_init() {
 
 //udp资源守护任务
 [[noreturn]] void udp_send_task(void *pvParameters) {
-    char toSend[300]={0};
+    char toSend[300] = {0};
     serialPrintData_t toPrint;
     while (1) {
         xQueueReceive(udpSendDataQueue, toSend, portMAX_DELAY);
@@ -114,15 +109,15 @@ uint8_t wifi_udp_init() {
     serialPrintData_t toPrint;
     while (1) {
         xQueueReceive(udpRecDataQueue, &recData, portMAX_DELAY);
-        if (strcmp( (char *)recData.data , "connect")== 0) {
-            toPrint.type="rec_connect";
+        if (strcmp((char *) recData.data, "connect") == 0) {
+            toPrint.type = "rec_connect";
             xSemaphoreGive(paramUdpSend);
             xSemaphoreGive(attUdpSend);
-        } else if (strcmp((char *) recData.data,"end")== 0) {
-            toPrint.type="rec_end";
+        } else if (strcmp((char *) recData.data, "end") == 0) {
+            toPrint.type = "rec_end";
             xSemaphoreGive(attUdpEnd);
         } else {
-            toPrint.type="rec_data";
+            toPrint.type = "rec_data";
             parserStr = (char *) recData.data;
             index = parserStr.indexOf(":");
             if (index != -1) {
@@ -138,20 +133,19 @@ uint8_t wifi_udp_init() {
 
 [[noreturn]] void att_update_task(void *pvParameters) {
 
-    TickType_t lastwaketime=xTaskGetTickCount();
-    float gyroScale = 0.061;
+    TickType_t lastwaketime = xTaskGetTickCount();
     attFeedbackData_t attData;
     bool udpSendFlag = false;
     serialPrintData_t toPrint;
-    char attStr[60]={0};
-    uint8_t count=0;
+    char attStr[60] = {0};
+    uint8_t count = 0;
     float gx, gy, gz, gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted;
 
     while (1) {
         imu.update();
-        gx = (imu.gx - imu.gx_error) * gyroScale;
-        gy = (imu.gy - imu.gy_error) * gyroScale;
-        gz = (imu.gz - imu.gz_error) * gyroScale;
+        gx = imu.gx - imu.gx_error;
+        gy = imu.gy - imu.gy_error;
+        gz = imu.gz - imu.gz_error;
         LPFUpdate6axis(gx, gy, gz, imu.ax, imu.ay, imu.az);
         gxFilted = Filters.GyroxLPF.output;
         gyFilted = Filters.GyroyLPF.output;
@@ -161,26 +155,26 @@ uint8_t wifi_udp_init() {
         azFilted = Filters.AcczLPF.output;
         mahony.updateIMU(gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted);
 
-        if(count==9) count=0;
+        if (count == 9) count = 0;
         else count++;
 
-        printImuData(gxFilted,gyFilted,gzFilted,axFilted,ayFilted,azFilted);
+        printImuData(gxFilted, gyFilted, gzFilted, axFilted, ayFilted, azFilted);
 
-        attData={
+        attData = {
                 .gx=gxFilted,
                 .gy=gyFilted,
                 .gz=gzFilted,
                 .pitch=mahony.getPitch(),
                 .roll=mahony.getRoll(),
                 .yaw=mahony.getYaw()}; // deg & deg/s !!
-        xQueueSendToFront(attDataQueue,&attData,1/portTICK_PERIOD_MS);
+        xQueueSendToFront(attDataQueue, &attData, 1 / portTICK_PERIOD_MS);
 
         if (xSemaphoreTake(attUdpSend, 0))
             udpSendFlag = true;
         else if (xSemaphoreTake(attUdpEnd, 0))
             udpSendFlag = false;
 
-        if (udpSendFlag && count==9) {
+        if (udpSendFlag && count == 9) {
             sprintf(attStr, "angle:0;pitchCur:%3.2f;rollCur:%3.2f;yawCur:%3.2f;",
                     mahony.getPitch(), mahony.getRoll(), mahony.getYaw());
             xQueueSend(udpSendDataQueue, attStr, 0);
@@ -193,7 +187,7 @@ uint8_t wifi_udp_init() {
         toPrint.data[2] = mahony.getYaw();
         xQueueSend(serialPrintQueue, (void *) &toPrint, 0 / portTICK_PERIOD_MS);
 
-        vTaskDelayUntil(&lastwaketime, 5/portTICK_PERIOD_MS);
+        vTaskDelayUntil(&lastwaketime, 5 / portTICK_PERIOD_MS);
     }
 }
 
@@ -216,83 +210,71 @@ uint8_t wifi_udp_init() {
 }
 
 [[noreturn]] void pid_calculate_task(void *pvParameters) {
-    TickType_t lastwaketime=xTaskGetTickCount();
+    TickType_t lastwaketime = xTaskGetTickCount();
     attFeedbackData_t attData;
     paramChange_t newParam;
     serialPrintData_t toPrint;
-    char paramList[300]={0};
-    char letter0,letter2;
+    char paramList[300] = {0};
+    char letter0, letter2;
     float angleYaw, angleRoll, anglePitch, angularVelYaw, angularVelRoll, angularVelPitch;
     while (1) {
-        if(xQueueReceive(paramChangeQueue,&newParam,0)==pdTRUE) {
-            letter0=newParam.param[0];
-            letter2=newParam.param[2];
-            if(letter0=='o')
-            {
-                if(letter2=='p')
-                {
-                    if (strcmp(newParam.param,"okp1") == 0)
-                        anglePitch_ctrl.kP=newParam.value;
-                    else if(strcmp(newParam.param,"okp2") == 0)
-                        angleRoll_ctrl.kP=newParam.value;
-                    else if(strcmp(newParam.param,"okp3") == 0)
-                        angleYaw_ctrl.kP=newParam.value;
-                }
-                else if(letter2=='i')
-                {
-                    if (strcmp(newParam.param,"oki1") == 0)
-                        anglePitch_ctrl.kI=newParam.value;
-                    else if(strcmp(newParam.param,"oki2") == 0)
-                        angleRoll_ctrl.kI=newParam.value;
-                    else if(strcmp(newParam.param,"oki3") == 0)
-                        angleYaw_ctrl.kI=newParam.value;
-                }
-                else if(letter2=='d')
-                {
-                    if (strcmp(newParam.param,"okd1") == 0)
-                        anglePitch_ctrl.kD=newParam.value;
-                    else if(strcmp(newParam.param,"okd2") == 0)
-                        angleRoll_ctrl.kD=newParam.value;
-                    else if(strcmp(newParam.param,"okd3") == 0)
-                        angleYaw_ctrl.kD=newParam.value;
+        if (xQueueReceive(paramChangeQueue, &newParam, 0) == pdTRUE) {
+            letter0 = newParam.param[0];
+            letter2 = newParam.param[2];
+            if (letter0 == 'o') {
+                if (letter2 == 'p') {
+                    if (strcmp(newParam.param, "okp1") == 0)
+                        anglePitch_ctrl.kP = newParam.value;
+                    else if (strcmp(newParam.param, "okp2") == 0)
+                        angleRoll_ctrl.kP = newParam.value;
+                    else if (strcmp(newParam.param, "okp3") == 0)
+                        angleYaw_ctrl.kP = newParam.value;
+                } else if (letter2 == 'i') {
+                    if (strcmp(newParam.param, "oki1") == 0)
+                        anglePitch_ctrl.kI = newParam.value;
+                    else if (strcmp(newParam.param, "oki2") == 0)
+                        angleRoll_ctrl.kI = newParam.value;
+                    else if (strcmp(newParam.param, "oki3") == 0)
+                        angleYaw_ctrl.kI = newParam.value;
+                } else if (letter2 == 'd') {
+                    if (strcmp(newParam.param, "okd1") == 0)
+                        anglePitch_ctrl.kD = newParam.value;
+                    else if (strcmp(newParam.param, "okd2") == 0)
+                        angleRoll_ctrl.kD = newParam.value;
+                    else if (strcmp(newParam.param, "okd3") == 0)
+                        angleYaw_ctrl.kD = newParam.value;
                 }
             }
-            // TODO：这tm写的是什么玩�?
-            else if(letter0=='i')
-            {
-                if(letter2=='p')
-                {
-                    if (strcmp(newParam.param,"ikp1") == 0)
-                        angularVelPitch_ctrl.kP=newParam.value;
-                    else if(strcmp(newParam.param,"ikp2") == 0)
-                        angularVelRoll_ctrl.kP=newParam.value;
-                    else if(strcmp(newParam.param,"ikp3") == 0)
-                        angularVelYaw_ctrl.kP=newParam.value;
-                }
-                else if(letter2=='i')
-                {
-                    if (strcmp(newParam.param,"iki1") == 0)
-                        angularVelPitch_ctrl.kI=newParam.value;
-                    else if(strcmp(newParam.param,"iki2") == 0)
-                        angularVelRoll_ctrl.kI=newParam.value;
-                    else if(strcmp(newParam.param,"iki3") == 0)
-                        angularVelYaw_ctrl.kI=newParam.value;
-                }
-                else if(letter2=='d')
-                {
-                    if (strcmp(newParam.param,"ikd1") == 0)
-                        angularVelPitch_ctrl.kD=newParam.value;
-                    else if(strcmp(newParam.param,"ikd2") == 0)
-                        angularVelRoll_ctrl.kD=newParam.value;
-                    else if(strcmp(newParam.param,"ikd3") == 0)
-                        angularVelYaw_ctrl.kD=newParam.value;
+                // TODO：这tm写的是什么玩�?
+            else if (letter0 == 'i') {
+                if (letter2 == 'p') {
+                    if (strcmp(newParam.param, "ikp1") == 0)
+                        angularVelPitch_ctrl.kP = newParam.value;
+                    else if (strcmp(newParam.param, "ikp2") == 0)
+                        angularVelRoll_ctrl.kP = newParam.value;
+                    else if (strcmp(newParam.param, "ikp3") == 0)
+                        angularVelYaw_ctrl.kP = newParam.value;
+                } else if (letter2 == 'i') {
+                    if (strcmp(newParam.param, "iki1") == 0)
+                        angularVelPitch_ctrl.kI = newParam.value;
+                    else if (strcmp(newParam.param, "iki2") == 0)
+                        angularVelRoll_ctrl.kI = newParam.value;
+                    else if (strcmp(newParam.param, "iki3") == 0)
+                        angularVelYaw_ctrl.kI = newParam.value;
+                } else if (letter2 == 'd') {
+                    if (strcmp(newParam.param, "ikd1") == 0)
+                        angularVelPitch_ctrl.kD = newParam.value;
+                    else if (strcmp(newParam.param, "ikd2") == 0)
+                        angularVelRoll_ctrl.kD = newParam.value;
+                    else if (strcmp(newParam.param, "ikd3") == 0)
+                        angularVelYaw_ctrl.kD = newParam.value;
                 }
             }
-            toPrint.type="pid param";
-            toPrint.data[0]=anglePitch_ctrl.kP;
-            toPrint.data[1]= anglePitch_ctrl.kI;
-            toPrint.data[2]= anglePitch_ctrl.kD;
-            xQueueSend(serialPrintQueue,  &toPrint, 0 / portTICK_PERIOD_MS);
+            toPrint.type = "pid param";
+            toPrint.data[0] = anglePitch_ctrl.kP;
+            toPrint.data[1] = anglePitch_ctrl.kI;
+            toPrint.data[2] = anglePitch_ctrl.kD;
+            xQueueSend(serialPrintQueue, &toPrint, 0 / portTICK_PERIOD_MS);
         }
         xQueueReceive(attDataQueue, &attData, 1);
         angularVelPitch = attData.gx * 0.01744;
@@ -326,20 +308,20 @@ uint8_t wifi_udp_init() {
         // Serial.print(",");
         // Serial.println(attData.pitch);
 
-        if (xSemaphoreTake(paramUdpSend, 0)==pdTRUE) {
-            sprintf(paramList,"param;okp1:%2.2f;oki1:%2.2f;okd1:%2.2f;ikp1:%2.2f;iki1:%2.2f;ikd1:%2.2f;"
-                              "okp2:%2.2f;oki2:%2.2f;okd2:%2.2f;ikp2:%2.2f;iki2:%2.2f;ikd2:%2.2f;"
-                              "okp3:%2.2f;oki3:%2.2f;okd3:%2.2f;ikp3:%2.2f;iki3:%2.2f;ikd3:%2.2f;",
+        if (xSemaphoreTake(paramUdpSend, 0) == pdTRUE) {
+            sprintf(paramList, "param;okp1:%2.2f;oki1:%2.2f;okd1:%2.2f;ikp1:%2.2f;iki1:%2.2f;ikd1:%2.2f;"
+                               "okp2:%2.2f;oki2:%2.2f;okd2:%2.2f;ikp2:%2.2f;iki2:%2.2f;ikd2:%2.2f;"
+                               "okp3:%2.2f;oki3:%2.2f;okd3:%2.2f;ikp3:%2.2f;iki3:%2.2f;ikd3:%2.2f;",
                     anglePitch_ctrl.kP, anglePitch_ctrl.kI, anglePitch_ctrl.kD,
                     angularVelPitch_ctrl.kP, angularVelPitch_ctrl.kI, angularVelPitch_ctrl.kD,
                     angleRoll_ctrl.kP, angleRoll_ctrl.kI, angleRoll_ctrl.kD,
                     angularVelRoll_ctrl.kP, angularVelRoll_ctrl.kI, angularVelRoll_ctrl.kD,
                     angleYaw_ctrl.kP, angleYaw_ctrl.kI, angleYaw_ctrl.kD,
                     angularVelYaw_ctrl.kP, angularVelYaw_ctrl.kI, angularVelYaw_ctrl.kD);
-            xQueueSend(udpSendDataQueue, paramList, 3/ portTICK_PERIOD_MS);
+            xQueueSend(udpSendDataQueue, paramList, 3 / portTICK_PERIOD_MS);
 
-            toPrint.type="paramListSend";
-            xQueueSend(serialPrintQueue,  &toPrint, 1 / portTICK_PERIOD_MS);
+            toPrint.type = "paramListSend";
+            xQueueSend(serialPrintQueue, &toPrint, 1 / portTICK_PERIOD_MS);
         }
 
 //        toPrint.type="control";
@@ -367,17 +349,16 @@ void nonRtosTask() {
     Serial.println(mahony.getYaw());
 }
 
-static void printImuData(float gx,float gy,float gz, float ax,float ay,float az)
-{
+static void printImuData(float gx, float gy, float gz, float ax, float ay, float az) {
     float norm;
-    norm=ax*ax+ay*ay+az*az;
-    norm= sqrtf(norm);
+    norm = ax * ax + ay * ay + az * az;
+    norm = sqrtf(norm);
     Serial.print("acc:");
-    Serial.print(ax/norm);
+    Serial.print(ax / norm);
     Serial.print(",");
-    Serial.print(ay/norm);
+    Serial.print(ay / norm);
     Serial.print(",");
-    Serial.print(az/norm);
+    Serial.print(az / norm);
     Serial.print(",");
 
 //    Serial.print("gyro:");
