@@ -10,17 +10,6 @@
 #include "AsyncUDP.h"
 #include "WiFi.h"
 
-[[noreturn]] void att_update_task(void *pvParameters);
-[[noreturn]] void serial_print_task(void *pvParameters);
-[[noreturn]] void pid_calculate_task(void *pvParameters);
-[[noreturn]] void udp_parser_data_task(void *pvParameters);
-[[noreturn]] void udp_send_task(void *pvParameters);
-
-void att_calc_init();
-void pid_ctrl_init();
-uint8_t wifi_udp_init();
-void nonRtosTask();
-
 typedef struct {
     char *type;
     float data[3]={0};
@@ -46,6 +35,19 @@ typedef struct
     uint8_t data[10]={0};
     IPAddress remoteIP;
 }udpRecData_t;
+
+[[noreturn]] void att_update_task(void *pvParameters);
+[[noreturn]] void serial_print_task(void *pvParameters);
+[[noreturn]] void pid_calculate_task(void *pvParameters);
+[[noreturn]] void udp_parser_data_task(void *pvParameters);
+[[noreturn]] void udp_send_task(void *pvParameters);
+
+void att_calc_init();
+void pid_ctrl_init();
+uint8_t wifi_udp_init();
+void nonRtosTask();
+static void dataParser(paramChange_t newParam);
+static void print_controller_info(float angle);
 
 extern Mahony mahony;
 #endif //SOURCE_TASKS_H

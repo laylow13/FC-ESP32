@@ -22,6 +22,12 @@ void motor_init() {
     ledcAttachPin(MOTOR_PIN2,1);
     ledcAttachPin(MOTOR_PIN3,2);
     ledcAttachPin(MOTOR_PIN4,3);
+//    esc_cali();
+    delay(1);
+    ledcWrite(0,SUBER_DUTY);
+    ledcWrite(1,SUBER_DUTY);
+    ledcWrite(2,SUBER_DUTY);
+    ledcWrite(3,SUBER_DUTY);
 }
 
 void esc_cali() {

@@ -13,7 +13,7 @@
 #define MOTOR_PIN3 21
 #define MOTOR_PIN4 32
 #define ESC_CALI_DELAY 2000
-#define UPPER_DUTY  2300
+#define UPPER_DUTY  2000
 #define SUBER_DUTY   1000
 #define Motor_PWM_MIN		1000// 980
 #define Motor_PWM_MAX		2500

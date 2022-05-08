@@ -5,8 +5,7 @@
 #include "imu.h"
 #include "Arduino.h"
 
-#define STATIC_ERROR_SAMPLE_TIME 2000
-#define IMU_SAMPLE_PERIOD 5 // 5ms one time
+#define STATIC_ERROR_SAMPLE_NUM 2000
 #define GAINBtw50hz (3.450423889e+02f)
 #define GAINBtw30Hz 1.278738361e+02f
 
@@ -14,7 +13,7 @@ IMU imu;
 Filter6axisTypeDef Filters;
 
 void IMU::init() {
-    imu_type = IMU_BMI088;
+    imu_type = IMU_MPU6500;
     uint8_t deviceId;
     int sta;
     // bmi088 use SPI
@@ -139,47 +138,67 @@ int8_t IMU::update() {
     return 1;
 }
 
-int16_t IMU::getAccelX() {
-    return ax;
+void IMU::movingWindowFil() {
+    float mW_temp[6]={0};
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < WINDOW_NUM; j++) {
+            if (j < WINDOW_NUM - 1)
+                movingWin[i][j] = movingWin[i][j + 1];
+            else
+                switch (i) {
+                    case 0:
+                        movingWin[i][j] = (float) gx - gx_error;
+                        break;
+                    case 1:
+                        movingWin[i][j] = (float) gy - gy_error;
+                        break;
+                    case 2:
+                        movingWin[i][j] = (float) gz - gz_error;
+                        break;
+                    case 3:
+                        movingWin[i][j] = (float) ax - ax_error;
+                        break;
+                    case 4:
+                        movingWin[i][j] = (float) ay - ay_error;
+                        break;
+                    case 5:
+                        movingWin[i][j] = (float) az - az_error;
+                        break;
+                    default:
+                        break;
+                }
+        }
+    }
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < WINDOW_NUM; j++) {
+            mW_temp[i]+=movingWin[i][j];
+        }
+    }
+    gx_mWfilted= mW_temp[0] / WINDOW_NUM;
+    gy_mWfilted= mW_temp[1] / WINDOW_NUM;
+    gz_mWfilted= mW_temp[2] / WINDOW_NUM;
+    ax_mWfilted= mW_temp[3] / WINDOW_NUM;
+    ay_mWfilted= mW_temp[4] / WINDOW_NUM;
+    az_mWfilted= mW_temp[5] / WINDOW_NUM;
 }
 
-int16_t IMU::getAccelY() {
-    return ay;
-}
-
-int16_t IMU::getAccelZ() {
-    return az;
-}
-
-int16_t IMU::getGyroX() {
-    return gx;
-}
-
-int16_t IMU::getGyroY() {
-    return gy;
-}
-
-int16_t IMU::getGyroZ() {
-    return gz;
-}
-
-void IMU::getGyroStaticError(void) {
-    int gyrox_add = 0;
-    int gyroy_add = 0;
-    int gyroz_add = 0;
+void IMU::getGyroStaticError() {
+    double gyrox_add = 0;
+    double gyroy_add = 0;
+    double gyroz_add = 0;
     Serial.println("Keep Still to Calibrate Gyro");
     delay(1000);
-    for (int i = 0; i < STATIC_ERROR_SAMPLE_TIME; i++) {
-        this->update();
+    for (int i = 0; i < STATIC_ERROR_SAMPLE_NUM; i++) {
+        update();
         delay(1);
         gyrox_add += gx;
         gyroy_add += gy;
         gyroz_add += gz;
     }
     Serial.println("Calibrated!");
-    gx_error = (float) (gyrox_add / STATIC_ERROR_SAMPLE_TIME);
-    gy_error = (float) (gyroy_add / STATIC_ERROR_SAMPLE_TIME);
-    gz_error = (float) (gyroz_add / STATIC_ERROR_SAMPLE_TIME);
+    gx_error = (float) (gyrox_add / STATIC_ERROR_SAMPLE_NUM);
+    gy_error = (float) (gyroy_add / STATIC_ERROR_SAMPLE_NUM);
+    gz_error = (float) (gyroz_add / STATIC_ERROR_SAMPLE_NUM);
 }
 
 // butterworth filter

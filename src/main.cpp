@@ -14,14 +14,9 @@
 
 void setup() {
     Serial.begin(921600);
+    motor_init();
     att_calc_init();
     pid_ctrl_init();
-    motor_init();
-    // esc_cali();
-    ledcWrite(0,SUBER_DUTY);
-    ledcWrite(1,SUBER_DUTY);
-    ledcWrite(2,SUBER_DUTY);
-    ledcWrite(3,SUBER_DUTY);
     delay(1000);
     if(wifi_udp_init())
     {

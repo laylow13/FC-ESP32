@@ -21,6 +21,7 @@
 #define IMU_I2C_SDA 26  //need to be edited!
 #define IMU_I2C_SCL 27
 #endif
+#define WINDOW_NUM 5
 class IMU
 {
 private:
@@ -28,10 +29,15 @@ private:
     ICM20689 icm20689;
     ICM42605 icm42605;
     Bmi088 bmi088;
+    float movingWin[6][WINDOW_NUM]={{0}};
+
 public:
     double ax, ay, az;
     double gx, gy, gz;
-    float gx_error,gy_error,gz_error;
+    float gx_error=0,gy_error=0,gz_error=0,
+            ax_error=0,ay_error=0,az_error=0;
+    float gx_mWfilted,gy_mWfilted,gz_mWfilted,
+            ax_mWfilted,ay_mWfilted,az_mWfilted;
     enum IMU_TYPE
     {
         IMU_MPU6050,
@@ -47,15 +53,7 @@ public:
     void init();
     void getGyroStaticError();
     int8_t update();
-
-    int16_t getAccelX();
-    int16_t getAccelY();
-    int16_t getAccelZ();
-
-    int16_t getGyroX();
-    int16_t getGyroY();
-    int16_t getGyroZ();
-
+    void movingWindowFil();
 };
 extern IMU imu;
 
